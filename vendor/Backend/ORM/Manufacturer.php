@@ -21,7 +21,7 @@ class Manufacturer extends Entity
         ],
         'models' => [
             'type' => '?backRef',
-            'class' => '\Backend\ORM\Model',
+            'class' => '\Backend\ORM\EquipmentModel',
             'refField' => 'manufacturerId',
             'readonly' => true,
             'desc' => 'Список моделей'

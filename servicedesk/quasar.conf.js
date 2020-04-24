@@ -14,7 +14,8 @@ module.exports = function (/* ctx */) {
     // --> boot files are part of "main.js"
     // https://quasar.dev/quasar-cli/cli-documentation/boot-files
     boot: [
-      'axios'
+      'axios',
+      'jsonRPC'
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
@@ -32,7 +33,7 @@ module.exports = function (/* ctx */) {
       // 'line-awesome',
       // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
 
-      'roboto-font', // optional, you are not bound to it
+      // 'roboto-font', // optional, you are not bound to it
       // 'material-icons' // optional, you are not bound to it
     ],
 
@@ -54,7 +55,10 @@ module.exports = function (/* ctx */) {
       directives: [],
 
       // Quasar plugins
-      plugins: []
+      plugins: [
+        'Dialog',
+        'Notify'
+      ]
     },
 
     // https://quasar.dev/quasar-cli/cli-documentation/supporting-ie
@@ -65,7 +69,8 @@ module.exports = function (/* ctx */) {
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-build
     build: {
-      vueRouterMode: 'hash', // available values: 'hash', 'history'
+      scopeHoisting: true,
+      vueRouterMode: 'history', // available values: 'hash', 'history'
 
       // rtl: false, // https://quasar.dev/options/rtl-support
       // showProgress: false,
@@ -92,8 +97,8 @@ module.exports = function (/* ctx */) {
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-devServer
     devServer: {
-      https: false,
-      port: 8080,
+      // https: false,
+      // port: 8080,
       open: false // opens browser window automatically
     },
 
@@ -108,13 +113,13 @@ module.exports = function (/* ctx */) {
 
     // https://quasar.dev/quasar-cli/developing-pwa/configuring-pwa
     pwa: {
-      workboxPluginMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
-      workboxOptions: {}, // only for GenerateSW
+      // workboxPluginMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
+      // workboxOptions: {}, // only for GenerateSW
       manifest: {
-        name: 'Service Desk',
+        // name: 'Service Desk',
 
-        short_name: 'Service Desk',
-        description: 'So-deystviye Service Desk',
+        // short_name: 'Service Desk',
+        // description: 'So-deystviye Service Desk',
         display: 'standalone',
         orientation: 'portrait',
 
@@ -154,17 +159,17 @@ module.exports = function (/* ctx */) {
     // Full list of options: https://quasar.dev/quasar-cli/developing-cordova-apps/configuring-cordova
     cordova: {
       // noIosLegacyBuildFlag: true, // uncomment only if you know what you are doing
-      id: 'org.cordova.quasar.app'
+      // id: 'org.cordova.quasar.app'
     },
 
     // Full list of options: https://quasar.dev/quasar-cli/developing-capacitor-apps/configuring-capacitor
-    capacitor: {
-      hideSplashscreen: true
-    },
+    // capacitor: {
+      // hideSplashscreen: true
+    // },
 
     // Full list of options: https://quasar.dev/quasar-cli/developing-electron-apps/configuring-electron
     electron: {
-      bundler: 'packager', // 'packager' or 'builder'
+      // bundler: 'packager', // 'packager' or 'builder'
 
       packager: {
         // https://github.com/electron-userland/electron-packager/blob/master/docs/api.md#options
@@ -182,11 +187,11 @@ module.exports = function (/* ctx */) {
       builder: {
         // https://www.electron.build/configuration/configuration
 
-        appId: 'sd'
+        // appId: 'sd'
       },
 
       // More info: https://quasar.dev/quasar-cli/developing-electron-apps/node-integration
-      nodeIntegration: true,
+      // nodeIntegration: true,
 
       extendWebpack (/* cfg */) {
         // do something with Electron main process Webpack cfg

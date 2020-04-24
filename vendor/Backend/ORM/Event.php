@@ -42,7 +42,7 @@ class Event extends Entity
         ],
         'requestId' => [
             'field' => 'request_id',
-            'type' = 'numeric',
+            'type' => 'numeric',
             'required' => true,
             'desc' => 'ID заявки'
         ],

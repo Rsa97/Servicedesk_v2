@@ -8,7 +8,7 @@ class Sender extends Entity
     protected static array $map = [
         'userId' => [
             'field' => 'user_guid',
-            'type' = 'uuid',
+            'type' => 'uuid',
             'required' => true,
             'desc' => 'GUID пользователя'
         ],
@@ -50,7 +50,7 @@ class Sender extends Entity
         $sql = "INSERT INTO `sendMethods` (`user_guid`, `contract_guid`, `event`, `sender`, `updated`) "
             .   "VALUES (:userId, :contractId, :event, :sender, 1) "
             .   "ON DUPLICATE KEY UPDATE `updated` = 1";
-        $db = DB::get();
+        $db = \Backend\Common\DB::get();
         $req = $db->prepare($sql);
         $req->execute([
             'userId' => static::typeToDB('uuid', $this->userId),
@@ -63,7 +63,7 @@ class Sender extends Entity
     public static function startUpdate($user)
     {
         $sql = "UPDATE INTO `sendMethods` SET `updated` = 0 WHERE `userId` = :userId";
-        $db = DB::get();
+        $db = \Backend\Common\DB::get();
         $req = $db->prepare($sql);
         $db->query('START TRANSACTION');
         $req->execute([
@@ -74,7 +74,7 @@ class Sender extends Entity
     public static function finishUpdate($user)
     {
         $sql = "DELETE FROM `sendMethods` WHERE `userId` = :userId AND `updated` = 0";
-        $db = DB::get();
+        $db = \Backend\Common\DB::get();
         $req = $db->prepare($sql);
         $req->execute([
             'userId' => static::typeToDB('uuid', $user->id)

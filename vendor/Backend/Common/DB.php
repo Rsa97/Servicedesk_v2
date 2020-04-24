@@ -1,5 +1,5 @@
 <?php
-namespace Backend\ORM;
+namespace Backend\Common;
 
 class DB extends \PDO
 {

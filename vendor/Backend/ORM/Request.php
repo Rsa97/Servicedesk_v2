@@ -49,7 +49,7 @@ class Request extends Entity
         ],
         'fixBefore' => [
             'field' => 'fixBefore',
-            'type' = 'datetime',
+            'type' => 'datetime',
             'required' => true,
             'desc' => 'Дата и время, до которых надо восстановить работоспособность'
         ],
@@ -60,7 +60,7 @@ class Request extends Entity
         ],
         'repairBefore' => [
             'field' => 'repairBefore',
-            'type' = 'datetime',
+            'type' => 'datetime',
             'required' => true,
             'desc' => 'Дата и время, до которых надо закрыть заявку'
         ],
@@ -257,7 +257,7 @@ class Request extends Entity
             'type' => '?backRef',
             'class' => '\Backend\ORM\Event',
             'refField' => 'eventId',
-            'readonly' => true,,
+            'readonly' => true,
             'desc' => 'Список событий по заявке'
         ]
     ];

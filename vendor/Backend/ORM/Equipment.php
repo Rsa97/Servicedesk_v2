@@ -38,7 +38,7 @@ class Equipment extends Entity
         ],
         'equipmentModelId' => [
             'field' => 'equipmentModel_guid',
-            'type' = 'uuid',
+            'type' => 'uuid',
             'required' => true,
             'desc' => 'GUID модели'
         ],

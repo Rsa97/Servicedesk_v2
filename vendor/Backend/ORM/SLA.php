@@ -15,7 +15,7 @@ class SLA extends Entity
         ],
         'contractId' => [
             'field' => 'contract_guid',
-            'type' = 'uuid',
+            'type' => 'uuid',
             'required' => true,
             'desc' => 'GUID договора'
         ],
@@ -28,7 +28,7 @@ class SLA extends Entity
         ],
         'serviceId' => [
             'field' => 'service_guid',
-            'type' = 'uuid',
+            'type' => 'uuid',
             'required' => true,
             'desc' => 'GUID услуги'
         ],
@@ -41,7 +41,7 @@ class SLA extends Entity
         ],
         'divisionTypeId' => [
             'field' => 'divType_guid',
-            'type' = 'uuid',
+            'type' => 'uuid',
             'required' => true,
             'desc' => 'GUID типа подразделения'
         ],
@@ -55,13 +55,13 @@ class SLA extends Entity
         'level' => [
             'field' => 'level',
             'type' => 'slaLevel',
-            'requlred' = true,
+            'requlred' => true,
             'desc' => 'Уровень SLA'
         ],
         'dayType' => [
             'field' => 'dayType',
             'type' => 'dayType',
-            'required' = true,
+            'required' => true,
             'desc' => 'Типы дня (будни/выходной)'
         ],
         'toReact' => [
@@ -92,21 +92,21 @@ class SLA extends Entity
             'field' => 'startDayTime',
             'type' => 'time',
             'required' => true,
-            'default' = '00:00:00',
+            'default' => '00:00:00',
             'desc' => 'Начало рабочего дня по SLA'
         ],
         'end' => [
             'field' => 'endDayTime',
             'type' => 'time',
             'required' => true,
-            'default' = '23:59:59',
+            'default' => '23:59:59',
             'desc' => 'Конец рабочего дня по SLA'
         ],
         'default' => [
             'field' => 'isDefault',
             'type' => 'boolean',
-            'required' = true,
-            'default' = false,
+            'required' => true,
+            'default' => false,
             'desc' => 'Услуга по умолчанию'
         ],
     ];

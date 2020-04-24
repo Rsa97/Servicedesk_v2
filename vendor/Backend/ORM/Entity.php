@@ -162,9 +162,20 @@ class Entity
 
     protected static function buildCondition(array $definition, \Backend\Common\Counter $counter) : array
     {
-        if (!array_key_exists($definition[0], static::$map)) {
-            throw new \Exception("Field {$definition[0]} is not exists");
-        }
+        assert(
+            array_key_exists($definition[0], static::$map),
+            new \Exception("Field {$definition[0]} is not exists")
+        );
+        assert(
+            in_array(
+                $definition[1],
+                [
+                    'IS NULL', 'IS NOT NULL', '>', '<', '=', '<>', '>=', '<=',
+                    'BETWEEN', 'IN', 'NOT IN'
+                ]
+            ),
+            new \Exception("Invalid condition {$definition[1]}")
+        );
         $fieldDef = static::$map[$definition[0]];
         switch ($definition[1]) {
             case 'IS NULL':
@@ -179,19 +190,21 @@ class Entity
             case '<>':
             case '>=':
             case '<=':
-                if (!static::isType($fieldDef['type'], $definition[2])) {
-                    throw new \Exception("Incorrect value for field {$definition[0]}");
-                }
+                assert(
+                    static::isType($fieldDef['type'], $definition[2]),
+                    new \Exception("Incorrect value for field {$definition[0]}")
+                );
                 $ctr = $counter->next();
                 return [
                     'conditions' => "(`{$fieldDef['field']}` {$definition[1]} :value{$ctr})",
                     'values' => ["value{$ctr}" => static::typeToDb($fieldDef['type'], $definition[2])]
                 ];
             case 'BETWEEN':
-                if (!static::isType($fieldDef['type'], $definition[2])
-                    || !static::isType($fieldDef['type'], $definition[3])) {
-                    throw new \Exception("Incorrect value for field {$definition[0]}");
-                }
+                assert(
+                    static::isType($fieldDef['type'], $definition[2])
+                        && static::isType($fieldDef['type'], $definition[3]),
+                    new \Exception("Incorrect value for field {$definition[0]}")
+                );
                 $ctr1 = $counter->next();
                 $ctr2 = $counter->next();
                 return [
@@ -206,9 +219,10 @@ class Entity
                 $values = [];
                 $condition = [];
                 foreach ($definition[2] as $val) {
-                    if (!static::isType($fieldDef['type'], $val)) {
-                        throw new \Exception("Incorrect value for field {$definition[0]}");
-                    }
+                    assert(
+                        static::isType($fieldDef['type'], $val),
+                        new \Exception("Incorrect value for field {$definition[0]}")
+                    );
                     $ctr = $counter->next();
                     $condition[] = ":value{$ctr}";
                     $values[":value{$ctr}"] = static::typeToDb($fieldDef['type'], $val);
@@ -217,8 +231,6 @@ class Entity
                     'conditions' => "`{$fieldDef['field']}` IN (" . implode(',', $condition) . ")",
                     'values' => $values
                 ];
-            default:
-                throw new \Exception("Invalid condition {$definition[1]}");
         }
     }
 
@@ -296,7 +308,7 @@ class Entity
         $fields = static::dbFieldsList();
         $conditions = static::buildConditions($filter);
         $sql = "SELECT {$fields} FROM `" . static::$table . "` WHERE {$conditions['conditions']}";
-        $db = DB::get();
+        $db = \Backend\Common\DB::get();
         $req = $db->prepare($sql);
         $req->execute($conditions['values']);
         $result = [];
@@ -312,7 +324,7 @@ class Entity
         $conditions = static::buildConditions($filter);
         $idField = static::$map['id']['field'];
         $sql = "SELECT `{$idField}` AS `id` FROM `" . static::$table . "` WHERE {$conditions['conditions']}";
-        $db = DB::get();
+        $db = \Backend\Common\DB::get();
         $req = $db->prepare($sql);
         $req->execute($conditions['values']);
         $result = [];
@@ -325,11 +337,20 @@ class Entity
     public static function getById($id)
     {
         if (!array_key_exists($id, static::$cache)) {
-            $result = static::getListByFilter(['id', '=', $id]);
-            if (count($result) == 0) {
+            $fields = static::dbFieldsList();
+            $conditions = static::buildConditions(['id', '=', $id]);
+            $sql = "SELECT {$fields} FROM `" . static::$table . "` WHERE {$conditions['conditions']}";
+            $db = \Backend\Common\DB::get();
+            $req = $db->prepare($sql);
+            $req->execute($conditions['values']);
+            $result = null;
+            if ($row = $req->fetch(\PDO::FETCH_ASSOC)) {
+                $result = new static($row, true);
+            }
+            if ($result === null) {
                 return null;
             }
-            static::$cache[$id] = $result[0];
+            static::$cache[$id] = $result;
         }
         return static::$cache[$id];
     }
@@ -358,7 +379,7 @@ class Entity
             array_keys($values)
         );
         $sql = "INSERT INTO `" . static::$table . "` ({$fields}) VALUES (" . implode(',', $names). ")";
-        $db = DB::get();
+        $db = \Backend\Common\DB::get();
         $req = $db->prepare($sql);
         $req->execute($values);
         if (array_key_exists('id', static::$map)) {
@@ -377,16 +398,18 @@ class Entity
             }
         }
         $sql = "UPDATE `" . static::$table . "` SET " . implode(',', $update). " WHERE {$idField} = :{$idField}";
-        $db = DB::get();
+        $db = \Backend\Common\DB::get();
         $req = $db->prepare($sql);
         $req->execute($values);
     }
 
     public function store()
     {
-        if (!array_key_exists('id', static::$map)) {
-            throw new \Exception("Can't store record without id field");
-        } elseif (null === $this->id) {
+        assert(
+            array_key_exists('id', static::$map),
+            new \Exception("Can't store record without id field")
+        );
+        if (null === $this->id) {
             $this->insert();
         } else {
             $this->update();
@@ -435,12 +458,15 @@ class Entity
     public function __set(string $name, $value)
     {
         if (array_key_exists($name, static::$map)) {
-            if ((static::$map[$name]['readonly'] ?? false) && array_key_exists($name, get_object_vars($this))) {
-                throw new \Exception("Readonly value {$name}");
-            }
-            if (!static::isType(static::$map[$name]['type'], $value)) {
-                throw new \Exception("Incorrect value {$name}");
-            }
+            assert(
+                !(static::$map[$name]['readonly'] ?? false)
+                    || !array_key_exists($name, get_object_vars($this)),
+                new \Exception("Readonly value {$name}")
+            );
+            assert(
+                static::isType(static::$map[$name]['type'], $value),
+                new \Exception("Incorrect value {$name}")
+            );
             switch (static::$map[$name]['type']) {
                 default:
                     $this->{$name} = $value;
@@ -455,15 +481,16 @@ class Entity
 
     public function __unset(string $name)
     {
-        if (static::$map[$name]['readonly'] ?? false) {
-            throw new \Exception("Readonly value {$name}");
-        }
+        assert(
+            !(static::$map[$name]['readonly'] ?? false),
+            new \Exception("Readonly value {$name}")
+        );
         unset($this->$name);
     }
 
     public function getDescription() : array
     {
-        $result[] = [
+        $result = [
             'desc' => static::$desc,
             'fields' => []
         ];

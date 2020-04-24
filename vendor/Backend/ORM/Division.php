@@ -41,7 +41,7 @@ class Division extends Entity
         ],
         'contractId' => [
             'field' => 'contract_guid',
-            'type' = 'uuid',
+            'type' => 'uuid',
             'required' => true,
             'desc' => 'GUID договора'
         ],
