@@ -4,6 +4,6 @@ export default function () {
     token: null,
     refreshToken: null,
     isRefreshing: false,
-    refreshingCall: null
-  }
+    refreshingCall: null,
+  };
 }

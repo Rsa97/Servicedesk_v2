@@ -1,184 +1,210 @@
-import { Dialog, Notify, Loading } from 'quasar'
-import SpinnerSD from '../components/SpinnerSD'
-import AuthLoginForm from '../components/AuthLoginForm'
-import axios from 'axios'
+import axios from 'axios';
+import { Dialog, Notify, Loading } from 'quasar';
+import SpinnerSD from '../components/SpinnerSD';
+import AuthLoginForm from '../components/AuthLoginForm';
+
+const silentErrors = [-36004, -36002];
 
 export default {
-  install (Vue) {
-    const jsonRPC = async function (method, params) {
-      let state = 'none'
-      if (this.$store.state.auth && this.$store.state.auth.token) {
-        state = 'normal'
+  install(Vue) {
+    async function jsonRPC(method, params, background = false) {
+      if (!background) {
+        this.$jsonRPC.showLoading();
       }
-      let id, data
+      let state = 'refresh';
+      if (this.$store.state.auth && this.$store.state.auth.token) {
+        state = 'normal';
+      }
+      let data;
       while (state !== 'done') {
-        id = this.$jsonRPC.nextId()
-        switch (state) {
-          case 'none':
-            data = await this.$jsonRPC.doLogin(id, this)
-            if (data.result !== undefined) {
-              this.$store.dispatch('auth/setToken', data.result.jwt)
-              this.$store.dispatch('auth/setRefreshToken', data.result.ref)
-              this.$store.dispatch('auth/setAuthorized')
-              state = 'normal'
-            }
-            break
+        switch (state) { // eslint-disable-line default-case
           case 'refresh':
-            data = await this.$jsonRPC.doRefresh(id, this)
-            if (data.error !== undefined) {
-              this.$store.dispatch('auth/setToken', null)
-              this.$store.dispatch('auth/setRefreshToken', null)
-              this.$store.dispatch('auth/setunAuthorized')
-              state = 'none'
-            } else {
-              this.$store.dispatch('auth/setToken', data.result.jwt)
-              this.$store.dispatch('auth/setRefreshToken', data.result.ref)
-              state = 'normal'
+            if (!this.$store.state.auth.isRefreshing) {
+              this.$store.dispatch('auth/setRefreshingState');
+              this.$store.dispatch('auth/setRefreshingCall', this.$jsonRPC.doRefreshToken(this.$store));
             }
-            break
+            await this.$store.state.auth.refreshingCall; // eslint-disable-line no-await-in-loop
+            this.$store.dispatch('auth/unsetRefreshingState');
+            state = 'normal';
+            break;
           case 'normal':
-            data = await this.$jsonRPC.doRequest(id, method, params, this)
+            data = await this.$jsonRPC.doRequest( // eslint-disable-line no-await-in-loop
+              method,
+              params,
+              this.$store.state.auth.token,
+            );
             if (data.error !== undefined && data.error.code === -36004) {
-              state = 'refresh'
+              state = 'refresh';
             } else {
-              state = 'done'
+              state = 'done';
             }
+            break;
+        }
+      }
+      if (!background) {
+        this.$jsonRPC.hideLoading();
+      }
+      if (data.result !== undefined) {
+        return data.result;
+      }
+      return null;
+    }
+
+    async function doRefreshToken(store) {
+      let state = 'refresh';
+      if (!store.state.auth || !store.state.auth.token) {
+        state = 'none';
+      }
+      let data;
+      while (state !== 'done') {
+        switch (state) { // eslint-disable-line default-case
+          case 'none':
+            data = await this.doLogin(); // eslint-disable-line no-await-in-loop
+            if (data.result !== undefined) {
+              store.dispatch('auth/setToken', data.result.jwt);
+              store.dispatch('auth/setRefreshToken', data.result.ref);
+              store.dispatch('auth/setAuthorized');
+              state = 'done';
+            }
+            break;
+          case 'refresh':
+            // eslint-disable-next-line no-await-in-loop
+            data = await this.doRefresh(store.state.auth.refreshToken);
+            if (data.error !== undefined) {
+              store.dispatch('auth/unsetAuthorized');
+              store.dispatch('auth/setToken', null);
+              store.dispatch('auth/setRefreshToken', null);
+              state = 'none';
+            } else {
+              store.dispatch('auth/setToken', data.result.jwt);
+              store.dispatch('auth/setRefreshToken', data.result.ref);
+              state = 'done';
+            }
+            break;
         }
       }
     }
+    jsonRPC.doRefreshToken = doRefreshToken;
+
+    function showLoading() {
+      if (this.loadingCount === 0) {
+        Loading.show({
+          spinner: SpinnerSD,
+          delay: 100,
+        });
+      }
+      this.loadingCount += 1;
+    }
+    jsonRPC.showLoading = showLoading;
+
+    function hideLoading() {
+      this.loadingCount -= 1;
+      if (this.loadingCount === 0) {
+        Loading.hide();
+      }
+    }
+    jsonRPC.hideLoading = hideLoading;
 
     jsonRPC.showMessage = (type, text) => {
       Notify.create({
         message: text,
         type: type === 'error' ? 'negative' : 'warning',
         position: 'top',
-        timeout: 10000
-      })
-    }
+        timeout: 10000,
+      });
+    };
 
-    jsonRPC.parseResponse = (response, id, that) => {
+    function parseResponse(response, id) {
       if (response.status !== 200) {
-        that.$jsonRPC.showMessage('error', `${response.status}: ${response.statusText}`)
-        return undefined
+        this.showMessage('error', `${response.status}: ${response.statusText}`);
+        return { error: { code: response.status, message: response.statusText } };
       }
-      if (response.data === undefined || response.data.jsonrpc !== '2.0' ||
-          (response.data.result === undefined && response.data.error === undefined) ||
-          (response.data.result !== undefined && response.data.id !== id)) {
-        that.$jsonRPC.showMessage('error', 'Неверный ответ от сервера')
-        return undefined
+      if (response.data === undefined || response.data.jsonrpc !== '2.0'
+          || (response.data.result === undefined && response.data.error === undefined)
+          || (response.data.result !== undefined && response.data.id !== id)
+      ) {
+        this.showMessage('error', 'Неверный ответ от сервера');
+        return { error: { code: 0, message: 'Неверный ответ от сервера' } };
       }
-      const data = response.data
+      const { data } = response;
       if (data.result !== undefined && data.result.warning !== undefined) {
-        that.$jsonRPC.showMessage('warning', data.result.warning)
+        this.showMessage('warning', data.result.warning);
       }
-      if (data.error !== undefined) {
-        let error = 'Неизвестная ошибка сервера'
+      if (data.error !== undefined && !silentErrors.includes(data.error.code)) {
+        let error = 'Неизвестная ошибка сервера';
         if (data.error.message !== undefined) {
-          error = data.error.message
+          error = data.error.message;
         }
         if (data.error.code !== undefined) {
-          error = `${data.error.code}: ${error}`
+          error = `${data.error.code}: ${error}`;
         }
-        that.$jsonRPC.showMessage('error', error)
+        this.showMessage('error', error);
       }
-      return data
+      return data;
     }
+    jsonRPC.parseResponse = parseResponse;
 
-    jsonRPC.doLogin = async (id, that) => {
-      let login = localStorage.getItem('login')
+    async function doLogin() {
+      let login = localStorage.getItem('login');
       if (login === null) {
-        login = ''
+        login = '';
       }
       const credentials = await new Promise(resolve => {
-        Dialog.create({
-          component: AuthLoginForm,
-          login: login
-        }).onOk(credentials => {
-          resolve(credentials)
-        })
-      })
-      localStorage.setItem('login', credentials.login)
-      const response = await that.$jsonRPC.call.post(
-        'http://10.149.0.206/api/',
-        {
-          jsonrpc: '2.0',
-          id: id,
-          method: 'Auth::auth',
-          params: credentials
-        }
-      )
-      return that.$jsonRPC.parseResponse(response, id, that)
+        Dialog.create({ component: AuthLoginForm, login })
+          .onOk(creds => {
+            resolve(creds);
+          });
+      });
+      localStorage.setItem('login', credentials.login);
+      return this.post('Auth::auth', credentials);
     }
+    jsonRPC.doLogin = doLogin;
 
-    jsonRPC.doRefresh = async (id, that) => {
-      const response = await that.$jsonRPC.call.post(
-        'http://10.149.0.206/api/',
-        {
-          jsonrpc: '2.0',
-          id: id,
-          method: 'Auth::refresh',
-          params: {
-            ref: that.$store.state.auth.refreshToken
-          }
-        }
-      )
-      return that.$jsonRPC.parseResponse(response, id, that)
+    function doRefresh(refreshToken) {
+      return this.post('Auth::refresh', { ref: refreshToken });
     }
+    jsonRPC.doRefresh = doRefresh;
 
-    jsonRPC.doRequest = async (id, method, params, that) => {
-      params.jwt = that.$store.state.auth.token
-      const response = await that.$jsonRPC.call.post(
-        'http://10.149.0.206/api/',
-        {
-          jsonrpc: '2.0',
-          id: id,
-          method: method,
-          params: params
-        }
-      )
-      return that.$jsonRPC.parseResponse(response, id, that)
+    function doRequest(method, params, token) {
+      params.jwt = token;
+      return this.post(method, params);
     }
+    jsonRPC.doRequest = doRequest;
+
+    async function post(method, params) {
+      const id = this.nextId();
+      try {
+        const response = await axios.post(
+          'http://10.149.0.206/api/',
+          {
+            jsonrpc: '2.0',
+            id,
+            method,
+            params,
+          },
+          {
+            timeout: 30000,
+            headers: { 'Content-Type': 'application/json;charset=utf-8' },
+          },
+        );
+        return this.parseResponse(response, id);
+      } catch (err) {
+        this.showMessage('error', err.message);
+        return { error: { code: 0, message: err.message } };
+      }
+    }
+    jsonRPC.post = post;
 
     jsonRPC.nextId = (() => {
-      let rpcId = 0
-      return () => ++rpcId
-    })()
+      let rpcId = 0;
+      return () => {
+        rpcId += 1;
+        return rpcId;
+      };
+    })();
 
-    jsonRPC.loadingCount = 0
+    jsonRPC.loadingCount = 0;
 
-    jsonRPC.call = axios.create({
-      baseURL: '//portal.sodrk.ru',
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json;charset=utf-8'
-      }
-    })
-
-    jsonRPC.call.interceptors.request.use(
-      config => {
-        if (jsonRPC.loadingCount === 0) {
-          Loading.show({
-            spinner: SpinnerSD,
-            delay: 100
-          })
-        }
-        jsonRPC.loadingCount++
-        return config
-      },
-      error => Promise.reject(error)
-    )
-
-    jsonRPC.call.interceptors.response.use(
-      config => {
-        jsonRPC.loadingCount--
-        if (jsonRPC.loadingCount === 0) {
-          Loading.hide()
-        }
-        return config
-      },
-      error => Promise.reject(error)
-    )
-
-    Vue.prototype.$jsonRPC = jsonRPC
-  }
-}
+    Vue.prototype.$jsonRPC = jsonRPC;
+  },
+};

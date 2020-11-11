@@ -1,4 +1,4 @@
-import Vue from 'vue'
-import JsonRPC from '../plugins/jsonRPC'
+import Vue from 'vue';
+import JsonRPC from '../plugins/jsonRPC';
 
-Vue.use(JsonRPC)
+Vue.use(JsonRPC);

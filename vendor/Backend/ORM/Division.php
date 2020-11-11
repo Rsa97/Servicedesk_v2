@@ -3,6 +3,8 @@ namespace Backend\ORM;
 
 class Division extends Entity
 {
+    protected $slaIds = null;
+
     protected static string $table = 'contractDivisions';
     protected static string $desc = 'Подразделение клиента в разрезе договора';
     protected static array $map = [
@@ -138,6 +140,33 @@ class Division extends Entity
             'refField' => 'userId',
             'readonly' => true,
             'desc' => 'Список пользователей клиента, ответственных за подразделение'
+        ],
+        'slaIds' => [
+            'type' => 'refm2m',
+            'class' => '\Backend\ORM\SLA',
+            'readonly' => true,
+            'desc' => 'Список SLA, связанный с подразделением'
         ]
     ];
+
+    public function __get(string $name)
+    {
+        switch ($name) {
+            case 'slaIds':
+                if ($this->slaIds === null) {
+                    $ids = \Backend\ORM\SLA::getIdsListByFilter([
+                        'AND', [
+                            ['contractId', '=', $this->contractId],
+                            ['divisionTypeId', '=', $this->typeId]
+                        ]
+                    ]);
+                    $this->slaIds = $ids;
+                }
+                return $this->slaIds;
+            case 'slas':
+                return \Backend\ORM\SLA::getListByIds($this->slaIds);
+            default:
+                return parent::__get($name);
+        }
+    }
 }

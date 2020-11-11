@@ -3,12 +3,13 @@ namespace Backend\API;
 
 class Auth
 {
-    private static function tokenPair(\Backend\ORM\User $user) : array
+    private static function tokenPair(\Backend\API\User $user) : array
     {
         $payload = [
             'user' => $user->id,
             'rights' => $user->rights,
-            'name' => $user->shortName
+            'name' => $user->shortName,
+            'partner' => $user->partnerId
         ];
         $token = new \Backend\Common\JWT($payload);
         $refreshToken = new \Backend\Common\JWT(['user' => $user->id], \Backend\Common\JWT::TYPE_REFRESH);
@@ -26,7 +27,7 @@ class Auth
         if ($login === '' || $password === '') {
             throw new \Exception('Incorrect login or password', -36001);
         }
-        $user = \Backend\ORM\User::getByLogin($login);
+        $user = \Backend\API\User::getByLogin($login);
         if (null == $user) {
             throw new \Exception('Incorrect login or password', -36001);
         } else {
@@ -53,7 +54,7 @@ class Auth
                 throw new \Exception('Refresh token already used', -36003);
         }
         $refreshToken->markUsed();
-        $user = \Backend\ORM\User::getById($refreshToken->payload['user']);
+        $user = \Backend\API\User::getById($refreshToken->payload['user']);
         if ($user === null || $user->disabled) {
             throw new \Exception('Incorrect login or password', -36001);
         }

@@ -1,9 +1,7 @@
 <?php
 namespace Backend\ORM;
 
-use function PHPSTORM_META\map;
-
-class Branch extends Entity
+class Partner extends Entity
 {
     protected static string $table = 'partners';
     protected static string $desc = 'Партнёр';

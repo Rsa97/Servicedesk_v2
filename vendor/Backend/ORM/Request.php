@@ -8,7 +8,7 @@ class Request extends Entity
     protected static array $map = [
         'id' => [
             'field' => 'id',
-            'type' => '?numeric',
+            'type' => '?integer',
             'readonly' => true,
             'required' => true,
             'default' => null,
@@ -109,7 +109,7 @@ class Request extends Entity
             'desc' => 'Уровень SLA'
         ],
         'engineerId' => [
-            'field' => 'contractDivision_guid',
+            'field' => 'engineer_guid',
             'type' => '?uuid',
             'desc' => 'GUID инженера'
         ],
@@ -201,21 +201,21 @@ class Request extends Entity
         ],
         'reactRate' => [
             'field' => 'reactRate',
-            'type' => 'numeric',
+            'type' => '?numeric',
             'required' => true,
             'default' => 0,
             'desc' => 'Скорость принятия заявки, доля'
         ],
         'fixRate' => [
             'field' => 'fixRate',
-            'type' => 'numeric',
+            'type' => '?numeric',
             'required' => true,
             'default' => 0,
             'desc' => 'Скорость восстановления работоспособности, доля'
         ],
         'repairRate' => [
             'field' => 'repairRate',
-            'type' => 'numeric',
+            'type' => '?numeric',
             'required' => true,
             'default' => 0,
             'desc' => 'Скорость закрытия заявки, доля'
@@ -256,9 +256,54 @@ class Request extends Entity
         'events' => [
             'type' => '?backRef',
             'class' => '\Backend\ORM\Event',
-            'refField' => 'eventId',
+            'refField' => 'requestId',
             'readonly' => true,
             'desc' => 'Список событий по заявке'
         ]
     ];
+
+    public function calcRates() : array
+    {
+        $result = [
+            'reactRate' => $this->reactRate,
+            'fixRate' => $this->fixRate,
+            'repairRate' => $this->repairRate
+        ];
+        $select = [];
+        $values = [
+            'id' => $this->id,
+            'createdAt' => $this->createdAt
+        ];
+        if ($this->reactRate === null && $this->toReact !== null && $this->toReact != 0) {
+            $select[] = "calcTime_V4(:id, :createdAt, IFNULL(:reactedAt, NOW())) AS `reactTime`";
+            $values['reactedAt'] = $this->wait ? $this->waitFrom : $this->reactedAt;
+        }
+        if ($this->fixRate === null && $this->toFix !== null && $this->toFix != 0) {
+            $select[] = "calcTime_V4(:id, :createdAt, IFNULL(:fixedAt, NOW())) AS `fixTime`";
+            $values['fixedAt'] = $this->wait ? $this->waitFrom : $this->fixedAt;
+        }
+        if ($this->repairRate === null && $this->toRepair !== null && $this->toRepair != 0) {
+            $select[] = "calcTime_V4(:id, :createdAt, IFNULL(:repairedAt, NOW())) AS `repairTime`";
+            $values['repairedAt'] = $this->wait ? $this->waitFrom : $this->repairedAt;
+        }
+        if (count($select) === 0) {
+            return $result;
+        }
+        $sql = "SELECT " . implode(',', $select);
+        $db = \Backend\Common\DB::get();
+        $req = $db->prepare($sql);
+        $req->execute($values);
+        if ($row = $req->fetch(\PDO::FETCH_ASSOC)) {
+            if (array_key_exists('reactTime', $row)) {
+                $result['reactRate'] = $row['reactTime'] / $this->toReact;
+            }
+            if (array_key_exists('fixTime', $row)) {
+                $result['fixRate'] = $row['fixTime'] / $this->toFix;
+            }
+            if (array_key_exists('repairTime', $row)) {
+                $result['repairRate'] = $row['repairTime'] / $this->toRepair;
+            }
+        }
+        return $result;
+    }
 }

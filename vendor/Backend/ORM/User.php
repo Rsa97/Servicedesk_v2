@@ -205,6 +205,10 @@ class User extends Entity
                 return $this->lastName
                     . (($this->firstName ?? '') === '' ? '' : ' ' . mb_substr($this->firstName, 0, 1)) . '.'
                     . (($this->middleName ?? '') === '' ? '' : ' ' . mb_substr($this->middleName, 0, 1)) . '.';
+            case 'fullName':
+                return $this->lastName
+                    . (($this->firstName ?? '') === '' ? '' : " {$this->firstName}")
+                    . (($this->middleName ?? '') === '' ? '' : " {$this->middleName}");
             default:
                 return parent::__get($name);
         }

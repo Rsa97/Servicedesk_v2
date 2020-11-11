@@ -3,12 +3,12 @@ namespace Backend\ORM;
 
 class Event extends Entity
 {
-    protected static string $table = 'requiestEvents';
+    protected static string $table = 'requestEvents';
     protected static string $desc = 'Событие по заявке';
     protected static array $map = [
         'id' => [
             'field' => 'id',
-            'type' => '?numeric',
+            'type' => '?integer',
             'readonly' => true,
             'required' => true,
             'desc' => 'ID события'
@@ -78,8 +78,8 @@ class Event extends Entity
             'type' => '?string',
             'desc' => 'Название документа, привязанного к событию'
         ],
-        'documentID' => [
-            'field' => 'document',
+        'documentId' => [
+            'field' => 'document_guid',
             'type' => '?uuid',
             'desc' => 'GUID документа'
         ],

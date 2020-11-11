@@ -27,7 +27,7 @@ class EquipmentSubType extends Entity
         ],
         'type' => [
             'type' => '?ref',
-            'refField' => 'equipmentTypeId',
+            'refField' => 'typeId',
             'class' => '\Backend\ORM\EquipmentType',
             'readonly' => true,
             'desc' => 'Тип оборудования'

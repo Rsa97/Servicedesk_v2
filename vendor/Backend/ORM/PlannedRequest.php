@@ -8,7 +8,7 @@ class PlannedRequest extends Entity
     protected static array $map = [
         'id' => [
             'field' => 'id',
-            'type' => '?numeric',
+            'type' => '?integer',
             'readonly' => true,
             'required' => true,
             'default' => null,

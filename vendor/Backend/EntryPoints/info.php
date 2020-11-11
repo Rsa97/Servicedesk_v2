@@ -14,8 +14,8 @@ function getClassesList() : array
     $dir = opendir('../ORM');
     while ($module = readdir($dir)) {
         $class = explode('.', $module)[0];
-        $fullClass = '\\Backend\\ORM\\' . $class;
-        if (class_exists($fullClass) && 'Backend\\ORM\\Entity' == get_parent_class($fullClass)) {
+        $fullClass = '\\Backend\\API\\' . $class;
+        if (class_exists($fullClass) && 'Backend\\API\\Entity' == get_parent_class($fullClass)) {
             $list[] = $class;
         }
     }
@@ -31,5 +31,5 @@ if (!in_array($_GET['class'], getClassesList())) {
     exit;
 }
 
-$class = '\\Backend\\ORM\\' . $_GET['class'];
+$class = '\\Backend\\API\\' . $_GET['class'];
 echo json_encode($class::getDescription(), JSON_UNESCAPED_UNICODE);

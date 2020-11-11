@@ -1,6 +1,6 @@
-# Service Desk (sd)
+# ServiceDesk (servicedesk)
 
-So-deystviye Service Desk
+SoDeystviye ServiceDesk
 
 ## Install the dependencies
 ```bash

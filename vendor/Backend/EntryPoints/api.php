@@ -36,7 +36,7 @@ try {
     $result= $class::$method($request['params'], $payload);
     \Backend\Common\JsonRPC::response($request['id'], $result);
 } catch (\PDOException $e) {
-    \Backend\Common\JsonRPC::error($request['id'], -32200, 'Database Error ' . $e->getCode() . ': ' . $e->getMessage);
+    \Backend\Common\JsonRPC::error($request['id'], -32200, 'Database Error ' . $e->getCode() . ': ' . $e->getMessage());
 } catch (\Exception $e) {
     \Backend\Common\JsonRPC::error($request['id'], $e->getCode(), $e->getMessage());
 }

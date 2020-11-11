@@ -24,6 +24,8 @@ class Entity
             $baseType = substr($baseType, 1);
         }
         switch ($baseType) {
+            case 'integer':
+                return is_integer($value);
             case 'numeric':
                 return is_numeric($value);
             case 'string':
@@ -81,6 +83,8 @@ class Entity
             $type = substr($type, 1);
         }
         switch ($type) {
+            case 'integer':
+                return intval($value);
             case 'numeric':
                 return floatval($value);
             case 'string':
@@ -112,6 +116,8 @@ class Entity
             $type = substr($type, 1);
         }
         switch ($type) {
+            case 'integer':
+                return intval($value);
             case 'numeric':
                 return floatval($value);
             case 'string':
@@ -190,6 +196,7 @@ class Entity
             case '<>':
             case '>=':
             case '<=':
+            case 'LIKE':
                 assert(
                     static::isType($fieldDef['type'], $definition[2]),
                     new \Exception("Incorrect value for field {$definition[0]}")
@@ -228,7 +235,7 @@ class Entity
                     $values[":value{$ctr}"] = static::typeToDb($fieldDef['type'], $val);
                 }
                 return [
-                    'conditions' => "`{$fieldDef['field']}` IN (" . implode(',', $condition) . ")",
+                    'conditions' => "`{$fieldDef['field']}` {$definition[1]} (" . implode(',', $condition) . ")",
                     'values' => $values
                 ];
         }
@@ -319,6 +326,36 @@ class Entity
         return $result;
     }
 
+    public function getCountsByFilter(array $filter, array $groupProps = []) : array
+    {
+        $conditions = static::buildConditions($filter);
+        $groupsList = [];
+        $resultList = ['COUNT(*) AS `count`'];
+        foreach ($groupProps as $prop) {
+            if (array_key_exists($prop, static::$map) &&
+                array_key_exists('field', static::$map[$prop])
+            ) {
+                $dbField = static::$map[$prop]['field'];
+                $groupsList[] = "`{$dbField}`";
+                $resultList[] = "`{$dbField}` AS `{$prop}`";
+            }
+        }
+        $groupsList = implode(',', $groupsList);
+        $resultList = implode(',', $resultList);
+        $sql = "SELECT {$resultList} FROM `" . static::$table . "` WHERE {$conditions['conditions']}";
+        if ($groupsList !== '') {
+            $sql .= " GROUP BY {$groupsList}";
+        }
+        $db = \Backend\Common\DB::get();
+        $req = $db->prepare($sql);
+        $req->execute($conditions['values']);
+        $result = [];
+        while ($row = $req->fetch(\PDO::FETCH_ASSOC)) {
+            $result[] = $row;
+        }
+        return $result;
+    }
+
     public function getIdsListByFilter(array $filter) : array
     {
         $conditions = static::buildConditions($filter);
@@ -361,11 +398,13 @@ class Entity
             return static::getListByFilterFromDB($filter);
         }
         $ids = static::getIdsListByFilter($filter);
-        $result = [];
-        foreach ($ids as $id) {
-            $result[] = static::getById($id);
-        }
-        return $result;
+        return static::getListByIds($ids);
+    }
+
+    public static function getListByIds(array $ids) : array
+    {
+        assert(array_key_exists('id', static::$map));
+        return array_values(array_map('static::getByID', $ids));
     }
 
     protected function insert()
@@ -412,6 +451,7 @@ class Entity
         if (null === $this->id) {
             $this->insert();
         } else {
+            apcu_delete(static::class . "_{$this->id}");
             $this->update();
         }
     }
@@ -445,7 +485,11 @@ class Entity
                         foreach ($links as $link) {
                             $ids[] = $link->{$fieldDef['refField']};
                         }
-                        $this->{$name} = $fieldDef['class']::getListByFilter(['id', 'IN', $ids]);
+                        if (count($ids) > 0) {
+                            $this->{$name} = $fieldDef['class']::getListByFilter(['id', 'IN', $ids]);
+                        } else {
+                            $this->{$name} = [];
+                        }
                     }
                     return $this->{$name} ?? null;
                 default:

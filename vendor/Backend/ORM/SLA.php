@@ -53,7 +53,7 @@ class SLA extends Entity
             'desc' => 'Тип подразделения'
         ],
         'level' => [
-            'field' => 'level',
+            'field' => 'slaLevel',
             'type' => 'slaLevel',
             'requlred' => true,
             'desc' => 'Уровень SLA'
